@@ -4,13 +4,14 @@ go 1.16
 
 require (
 	github.com/cosmos/cosmos-sdk v0.42.6
-	github.com/ethereum/go-ethereum v1.10.6
+	github.com/ethereum/go-ethereum v1.9.15
 	github.com/gogo/protobuf v1.3.3
 	github.com/golang/protobuf v1.5.2
 	github.com/google/go-cmp v0.5.6 // indirect
 	github.com/gorilla/mux v1.8.0
 	github.com/grpc-ecosystem/grpc-gateway v1.16.0
 	github.com/itchyny/base58-go v0.1.0
+	github.com/polynetwork/eth-contracts v0.0.0-20210115031323-d16252b2b857
 	github.com/prometheus/common v0.23.0
 	github.com/spf13/cast v1.3.1
 	github.com/spf13/cobra v1.1.3

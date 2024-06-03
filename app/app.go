@@ -8,6 +8,7 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/codec/types"
+	cfg "github.com/pchain-org/pi-bridge/tools/config"
 	"github.com/spf13/cast"
 	"github.com/tendermint/spm/openapiconsole"
 	abci "github.com/tendermint/tendermint/abci/types"
@@ -83,7 +84,9 @@ import (
 	"github.com/pchain-org/pi-bridge/docs"
 	tmjson "github.com/tendermint/tendermint/libs/json"
 	tmproto "github.com/tendermint/tendermint/proto/tendermint/types"
+
 	// this line is used by starport scaffolding # stargate/app/moduleImport
+	protocol "github.com/pchain-org/pi-bridge/protocol"
 	blockmodule "github.com/pchain-org/pi-bridge/x/block"
 	blockmodulekeeper "github.com/pchain-org/pi-bridge/x/block/keeper"
 	blockmoduletypes "github.com/pchain-org/pi-bridge/x/block/types"
@@ -241,6 +244,8 @@ type App struct {
 
 	// the module manager
 	mm *module.Manager
+
+	confg *cfg.ServiceConfig
 }
 
 // New returns a reference to an initialized Gaia.
@@ -256,6 +261,14 @@ func New(
 	appOpts servertypes.AppOptions,
 	baseAppOptions ...func(*baseapp.BaseApp),
 ) cosmoscmd.App {
+
+	// load config
+	// var ConfigPath string
+	// cmd.PersistentFlags().Lookup("cs_config")
+	servConfig := cfg.NewServiceConfig("./cs_config.json")
+	if servConfig == nil {
+		tmos.Exit("startServer - create config failed!")
+	}
 
 	appCodec := encodingConfig.Marshaler
 	cdc := encodingConfig.Amino
@@ -291,6 +304,7 @@ func New(
 		keys:              keys,
 		tkeys:             tkeys,
 		memKeys:           memKeys,
+		confg:             servConfig,
 	}
 
 	app.ParamsKeeper = initParamsKeeper(appCodec, cdc, keys[paramstypes.StoreKey], tkeys[paramstypes.TStoreKey])
@@ -534,6 +548,7 @@ func New(
 		// `loadLatest` is set to true.
 		ctx := app.BaseApp.NewUncachedContext(true, tmproto.Header{})
 		app.CapabilityKeeper.InitializeAndSeal(ctx)
+
 	}
 
 	app.ScopedIBCKeeper = scopedIBCKeeper
@@ -548,6 +563,8 @@ func (app *App) Name() string { return app.BaseApp.Name() }
 
 // BeginBlocker application updates every begin block
 func (app *App) BeginBlocker(ctx sdk.Context, req abci.RequestBeginBlock) abci.ResponseBeginBlock {
+	p := protocol.MakeProtocol(ctx, app.AccountKeeper, app.BlockKeeper)
+	p.Start()
 	return app.mm.BeginBlock(ctx, req)
 }
 
@@ -649,6 +666,7 @@ func (app *App) RegisterAPIRoutes(apiSvr *api.Server, apiConfig config.APIConfig
 	// register app's OpenAPI routes.
 	apiSvr.Router.Handle("/static/openapi.yml", http.FileServer(http.FS(docs.Docs)))
 	apiSvr.Router.HandleFunc("/", openapiconsole.Handler(Name, "/static/openapi.yml"))
+
 }
 
 // RegisterTxService implements the Application.RegisterTxService method.
